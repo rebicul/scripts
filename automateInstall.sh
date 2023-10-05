@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Grab the name of the user's directory and store the path into a variable
+session_usr_dir=$(pwd)
+echo "Hello $(echo "$session_usr_dir" | sed 's#.*/##')"
+
 # Check if 'scripts' folder exists in /usr/local/bin directory
 if [ -d "/usr/local/bin/scripts" ]; then
     echo "'scripts' folder exists, changing directory to it..."
@@ -35,26 +39,23 @@ threshold=97
 if [ "$var_usage" -ge "$threshold" ]; then
     echo "Disk usage for /var is above the threshold of $threshold%. Moving a few files into your home directory."
     
-    # Prompt the user for their username
-    read -p "Enter your username (firstname.lastname): " username
+    # Find and store the paths of files that match the criteria
+    files_to_move=()
+    while IFS= read -r file; do
+        files_to_move+=("$file")
+    done < <(find /var/log -type f -size +50M -mtime +0 ! -name 'lastlog' -exec ls -S {} +)
 
-    # Validate that the username is not empty
-    if [ -z "$username" ]; then
-        echo "Username cannot be empty. Exiting."
-        exit 1
+    # Determine how many files to move (up to a maximum of 3)
+    num_to_move="${#files_to_move[@]}"
+    if [ "$num_to_move" -gt 3 ]; then
+        num_to_move=3
     fi
 
-    # Find files greater than 50M sorted in descending order in /var/log that haven't been modified today.
-    files_to_move=$(find /var/log -type f -size +50M -mtime +0 ! -name 'lastlog' -exec ls -lSh {} +)
-    
-    # Create an associative array to store original paths
-    declare -A original_paths
-
-    # Get the first two files from the sorted list and store their original paths
-    first_two_files=$(echo "$files_to_move" | head -n 2)
-    while read -r file; do
-        original_paths["$file"]=$(dirname "$file")
-    done <<< "$first_two_files"
+    # Move the selected files to the $session_usr_dir directory
+    for ((i = 0; i < num_to_move; i++)); do
+        file="${files_to_move[$i]}"
+        mv "$file" "$session_usr_dir/"
+    done
 
     # Run clearVarLogs.sh located in /usr/local/bin/scripts
     if [ -f "/usr/local/bin/scripts/clearVarLogs.sh" ]; then
@@ -64,10 +65,10 @@ if [ "$var_usage" -ge "$threshold" ]; then
         exit 1
     fi
 
-    # Move the first two files back to their original directories
-    for file in "${!original_paths[@]}"; do
-        original_dir="${original_paths[$file]}"
-        mv "$file" "$original_dir/"
+    # Move the files back to their previous directories
+    for ((i = 0; i < num_to_move; i++)); do
+        file="${files_to_move[$i]}"
+        mv "$session_usr_dir/$(basename "$file")" "$(dirname "$file")/"
     done
 
     # Run clearVarLogs.sh again to modify files that were not in the /var/log previously
