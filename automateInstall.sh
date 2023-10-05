@@ -1,27 +1,21 @@
 #!/bin/bash
 
-# Check if 'scripts' folder exists in /usr/local/sbin directory
-if [ -d "/usr/local/sbin/scripts" ]; then
+# Check if 'scripts' folder exists in /usr/local/bin directory
+if [ -d "/usr/local/bin/scripts" ]; then
     echo "'scripts' folder exists, changing directory to it..."
-    cd /usr/local/sbin/scripts
+    cd /usr/local/bin/scripts
 else
     echo "'scripts' folder does not exist, creating it..."
-    mkdir /usr/local/sbin/scripts
-    cd /usr/local/sbin/scripts
+    mkdir /usr/local/bin/scripts
+    cd /usr/local/bin/scripts
 fi
 
-# cURL clearVarLogs.sh from GitHub and make it executable
-curl -O https://raw.githubusercontent.com/Rebicul/Scripts/master/clearVarLogs.sh
+# cURL raw clearVarLogs.sh from GitHub repo and make it executable
+curl -O 'URL'
 chmod +x clearVarLogs.sh
 
-# Create a cron job to run the script on Sundays at 6 p.m.
-(crontab -l ; echo "0 18 * * 0 /usr/local/sbin/scripts/your_file.sh") | crontab -
-echo "Cron job added to run your_file.sh on Sundays at 6 p.m."
-
-### Compare findmnt -T /[folder] output could be another way to identify /var/log. 
-
-# Run df -h and grep for "/var*"
-df_output=$(df -h | grep "/var*")
+# Run df -h and grep for "/var/*"
+df_output=$(df -h | grep "/var/*")
 
 # Count the number of lines in the output
 line_count=$(echo "$df_output" | wc -l)
@@ -42,7 +36,7 @@ if [ "$var_usage" -ge "$threshold" ]; then
     echo "Disk usage for /var is above the threshold of $threshold%. Moving a few files into your home directory."
     
     # Prompt the user for their username
-    read -p "Enter your username (e.g., luciano.bernal): " username
+    read -p "Enter your username (firstname.lastname): " username
 
     # Validate that the username is not empty
     if [ -z "$username" ]; then
@@ -62,11 +56,11 @@ if [ "$var_usage" -ge "$threshold" ]; then
         original_paths["$file"]=$(dirname "$file")
     done <<< "$first_two_files"
 
-    # Run clearVarLogs.sh located in /usr/local/sbin/scripts
-    if [ -f "/usr/local/sbin/scripts/clearVarLogs.sh" ]; then
-        ./usr/local/sbin/scripts/clearVarLogs.sh
+    # Run clearVarLogs.sh located in /usr/local/bin/scripts
+    if [ -f "/usr/local/bin/scripts/clearVarLogs.sh" ]; then
+        ./usr/local/bin/scripts/clearVarLogs.sh
     else
-        echo "clearVarLogs.sh not found in /usr/local/sbin/scripts."
+        echo "clearVarLogs.sh not found in /usr/local/bin/scripts."
         exit 1
     fi
 
@@ -77,10 +71,10 @@ if [ "$var_usage" -ge "$threshold" ]; then
     done
 
     # Run clearVarLogs.sh again to modify files that were not in the /var/log previously
-    if [ -f "/usr/local/sbin/scripts/clearVarLogs.sh" ]; then
-        ./usr/local/sbin/scripts/clearVarLogs.sh
+    if [ -f "/usr/local/bin/scripts/clearVarLogs.sh" ]; then
+        ./usr/local/bin/scripts/clearVarLogs.sh
     else
-        echo "clearVarLogs.sh not found in /usr/local/sbin/scripts."
+        echo "clearVarLogs.sh not found in /usr/local/bin/scripts."
         exit 1
     fi
 
@@ -89,11 +83,18 @@ if [ "$var_usage" -ge "$threshold" ]; then
 else
     echo "Disk usage for /var is within the threshold of $threshold%. Running the script now..."
     
-    # Run clearVarLogs.sh located in /usr/local/sbin/scripts
-    if [ -f "/usr/local/sbin/scripts/clearVarLogs.sh" ]; then
-        /usr/local/sbin/scripts/clearVarLogs.sh
+    # Run clearVarLogs.sh located in /usr/local/bin/scripts
+    if [ -f "/usr/local/bin/scripts/clearVarLogs.sh" ]; then
+        /usr/local/bin/scripts/clearVarLogs.sh
     else
-        echo "clearVarLogs.sh not found in /usr/local/sbin/scripts."
+        echo "clearVarLogs.sh not found in /usr/local/bin/scripts."
         exit 1
     fi
+
+    echo "Operation completed."
+
 fi
+
+# Create a cron job to run the script on Sundays at 6 p.m.
+(crontab -l ; echo "0 18 * * 0 /usr/local/bin/scripts/clearVarLogs.sh") | crontab -
+echo "Cron job added to run clearVarLogs.sh on Sundays at 6 p.m."
