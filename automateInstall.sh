@@ -1,22 +1,35 @@
 #!/bin/bash
 
-# Grab the name of the user's directory and store the path into a variable
+# Get the current user's directory
 session_usr_dir=$(pwd)
-echo "Hello $(echo "$session_usr_dir" | sed 's#.*/##')"
+user_name=$(basename "$session_usr_dir")
+echo "Hello $user_name"
 
-# Check if 'scripts' folder exists in /usr/local/bin directory
-if [ -d "/usr/local/bin/scripts" ]; then
-    echo "'scripts' folder exists, changing directory to it..."
-    cd /usr/local/bin/scripts
+# Check and create 'scripts' folder if it doesn't exist
+scripts_dir="/usr/local/bin/scripts"
+if [ -d "$scripts_dir" ]; then
+    echo "'scripts' folder exists."
 else
     echo "'scripts' folder does not exist, creating it..."
-    mkdir /usr/local/bin/scripts
-    cd /usr/local/bin/scripts
+    mkdir -p "$scripts_dir"
 fi
 
-# cURL raw clearVarLogs.sh from GitHub repo and make it executable
-curl -O 'URL'
-chmod +x clearVarLogs.sh
+# Check if clearVarLogs.sh already exists
+if [ -f "$scripts_dir/clearVarLogs.sh" ]; then
+    echo "clearVarLogs.sh already exists in $scripts_dir. Skipping download."
+
+    # Check if the file is executable
+    if [ -x "$scripts_dir/clearVarLogs.sh" ]; then
+        echo "clearVarLogs.sh is executable."
+    else
+        echo "clearVarLogs.sh is not executable. Making it executable..."
+        chmod +x "$scripts_dir/clearVarLogs.sh"
+    fi
+else
+    # Download and make clearVarLogs.sh executable
+    echo "downloading clearVarLogs.sh into $scripts_dir."
+    curl 'https://raw.githubusercontent.com/Rebicul/Scripts/master/clearVarLogs.sh' -o "$scripts_dir/clearVarLogs.sh" && chmod +x "$scripts_dir/clearVarLogs.sh"
+fi
 
 # Run df -h and grep for "/var/*"
 df_output=$(df -h | grep "/var/*")
@@ -34,8 +47,10 @@ else
     echo "Disk usage for /var is $var_usage%."
 fi
 
+# Define the threshold
 threshold=97
 
+# Check if usage is above the threshold
 if [ "$var_usage" -ge "$threshold" ]; then
     echo "Disk usage for /var is above the threshold of $threshold%. Moving a few files into your home directory."
     
@@ -51,17 +66,21 @@ if [ "$var_usage" -ge "$threshold" ]; then
         num_to_move=3
     fi
 
+    ls -lh
+
     # Move the selected files to the $session_usr_dir home directory
     for ((i = 0; i < num_to_move; i++)); do
         file="${files_to_move[$i]}"
         mv "$file" "$session_usr_dir/"
     done
 
-    # Run clearVarLogs.sh located in /usr/local/bin/scripts
-    if [ -f "/usr/local/bin/scripts/clearVarLogs.sh" ]; then
-        /usr/local/bin/scripts/clearVarLogs.sh
+    ls -lh
+
+    # Run clearVarLogs.sh
+    if [ -f "$scripts_dir/clearVarLogs.sh" ]; then
+        "$scripts_dir/clearVarLogs.sh"
     else
-        echo "clearVarLogs.sh not found in /usr/local/bin/scripts."
+        echo "clearVarLogs.sh not found in $scripts_dir."
         exit 1
     fi
 
@@ -71,35 +90,42 @@ if [ "$var_usage" -ge "$threshold" ]; then
         mv "$session_usr_dir/$(basename "$file")" "$(dirname "$file")/"
     done
 
-    # Run clearVarLogs.sh again to modify files that were not in the /var/log previously
-    if [ -f "/usr/local/bin/scripts/clearVarLogs.sh" ]; then
-        /usr/local/bin/scripts/clearVarLogs.sh
+    ls -lh
+
+    # Run clearVarLogs.sh again
+    if [ -f "$scripts_dir/clearVarLogs.sh" ]; then
+        "$scripts_dir/clearVarLogs.sh"
     else
-        echo "clearVarLogs.sh not found in /usr/local/bin/scripts."
+        echo "clearVarLogs.sh not found in $scripts_dir."
         exit 1
     fi
 
     echo "Operation completed."
-
 else
-    echo "Disk usage for /var is within the threshold of $threshold%. Running the script now..."
-    
-    # Run clearVarLogs.sh located in /usr/local/bin/scripts
-    if [ -f "/usr/local/bin/scripts/clearVarLogs.sh" ]; then
-        /usr/local/bin/scripts/clearVarLogs.sh
+    echo "Disk usage for /var is less than $threshold%. Running clearVarLogs.sh now..."
+
+    # Run clearVarLogs.sh
+    if [ -f "$scripts_dir/clearVarLogs.sh" ]; then
+        "$scripts_dir/clearVarLogs.sh"
     else
-        echo "clearVarLogs.sh not found in /usr/local/bin/scripts."
+        echo "clearVarLogs.sh not found in $scripts_dir."
         exit 1
     fi
 
     echo "Operation completed."
-
 fi
 
-# Create a cron job to run the script on Sundays at 6 p.m.
-(crontab -l ; echo "0 18 * * 0 /usr/local/bin/scripts/clearVarLogs.sh") | crontab -
-echo "Cron job added to run clearVarLogs.sh on Sundays at 6 p.m."
+cron_job="0 18 * * 0 $scripts_dir/clearVarLogs.sh"
 
-# Self-deleting shell script
-echo "Self deleting automateInstall.sh..."
+# Check if the cron job already exists in the crontab
+if (crontab -l | grep -Fxq "$cron_job"); then
+    echo "Cron job already exists."
+else
+    # Add the cron job to the crontab
+    (crontab -l ; echo "$cron_job") | crontab -
+    echo "Cron job added to run clearVarLogs.sh on Sundays at 6 p.m."
+fi
+
+# Self-delete the script
+echo "Self-deleting $(basename "$0")..."
 rm -- "$0"
