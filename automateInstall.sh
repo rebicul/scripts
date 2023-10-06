@@ -52,7 +52,7 @@ threshold=97
 
 # Check if usage is above the threshold
 if [ "$var_usage" -ge "$threshold" ]; then
-    echo "Disk usage for /var is above the threshold of $threshold%. Moving a few files into your home directory."
+    echo "Disk usage for /var is above the threshold of $threshold%. Moving a few files that aren't being modified into your home directory."
     
     # Find and store the paths of files that match the criteria
     files_to_move=()
