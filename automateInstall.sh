@@ -51,7 +51,7 @@ if [ "$var_usage" -ge "$threshold" ]; then
         num_to_move=3
     fi
 
-    # Move the selected files to the $session_usr_dir directory
+    # Move the selected files to the $session_usr_dir home directory
     for ((i = 0; i < num_to_move; i++)); do
         file="${files_to_move[$i]}"
         mv "$file" "$session_usr_dir/"
@@ -59,7 +59,7 @@ if [ "$var_usage" -ge "$threshold" ]; then
 
     # Run clearVarLogs.sh located in /usr/local/bin/scripts
     if [ -f "/usr/local/bin/scripts/clearVarLogs.sh" ]; then
-        ./usr/local/bin/scripts/clearVarLogs.sh
+        /usr/local/bin/scripts/clearVarLogs.sh
     else
         echo "clearVarLogs.sh not found in /usr/local/bin/scripts."
         exit 1
@@ -73,7 +73,7 @@ if [ "$var_usage" -ge "$threshold" ]; then
 
     # Run clearVarLogs.sh again to modify files that were not in the /var/log previously
     if [ -f "/usr/local/bin/scripts/clearVarLogs.sh" ]; then
-        ./usr/local/bin/scripts/clearVarLogs.sh
+        /usr/local/bin/scripts/clearVarLogs.sh
     else
         echo "clearVarLogs.sh not found in /usr/local/bin/scripts."
         exit 1
@@ -99,3 +99,7 @@ fi
 # Create a cron job to run the script on Sundays at 6 p.m.
 (crontab -l ; echo "0 18 * * 0 /usr/local/bin/scripts/clearVarLogs.sh") | crontab -
 echo "Cron job added to run clearVarLogs.sh on Sundays at 6 p.m."
+
+# Self-deleting shell script
+echo "Self deleting automateInstall.sh..."
+rm -- "$0"

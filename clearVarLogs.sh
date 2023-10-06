@@ -6,10 +6,18 @@ log_files=($(find /var/log -type f -size +50M ! -name 'lastlog' -print0 | xargs 
 # Loop through the array and process each log file
 for logfile in "${log_files[@]}"; do
 
-    # Calculate the number of lines to keep last 100 lines
-    lines_to_keep=$(( $(wc -l < "$logfile") - 100 ) )
+    # Calculate the number of lines in the file
+    total_lines=$(wc -l < "$logfile")
 
-    # Use sed to edit the file in place and keep the last 100 lines
-    sed -i "1,${lines_to_keep}d" "$logfile"
+    # Calculate the number of lines to keep (last 100 lines)
+    lines_to_keep=$(( total_lines - 100 ))
+
+    # Check if lines_to_keep is non-negative to avoid errors
+    if [ "$lines_to_keep" -ge 0 ]; then
+        # Use sed to edit the file in place and keep the last 100 lines
+        sed -i "1,${lines_to_keep}d" "$logfile"
+    else
+        echo "File $logfile has fewer than 100 lines. Skipping..."
+    fi
 
 done
